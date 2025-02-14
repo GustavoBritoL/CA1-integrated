@@ -11,30 +11,30 @@ package zooanimalapp;
 
 // Mammal class inherits from the Animal abstract class
 public class Mammal extends Animal {
-     // Constructor to initialize the Mammal-specific details
+     // Constructor to initialize the Mammal-specific details. 
     public Mammal(String type, String species, String name, String habitat, String dob, double weight, String characteristics) {
         // Call the parent (Animal) constructor to initialize fields
         super(type, species, name, habitat, dob, weight, characteristics);
     }
 
-    // Implement the abstract eat() method for Mammals
-    @Override
+    // Abstract eat() method for Mammals
+    @Override 
     public void eat() {
-        // Print how mammals typically eat
+        // Print how mammals typically eat.
         System.out.println(getName() + " is eating plants or meat.");
     }
 
-    // Implement the abstract makeSound() method for Mammals
+    // Abstract makeSound() method for Mammals.
     @Override
     public void makeSound() {
-        // Print the sound behavior for mammals
+        // Print the sound behavior for mammals.
         System.out.println(getName() + " is making a mammal sound.");
     }
 
-    // Implement the abstract move() method for Mammals
+    //  Abstract move() method for Mammals.
     @Override
     public void move() {
-        // Print how mammals typically move
+        // Print how mammals typically move.
         System.out.println(getName() + " is walking or running.");
     }
 }
