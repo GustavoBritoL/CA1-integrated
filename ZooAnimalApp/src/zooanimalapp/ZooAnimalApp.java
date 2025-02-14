@@ -7,197 +7,276 @@
  */
 package zooanimalapp;
 
-import java.io.BufferedReader;        // For reading the file line by line
-import java.io.FileReader;           // For opening and reading files
-import java.io.IOException;          // For handling file-related exceptions
-import java.time.LocalDate;          // For handling date (Date of Birth)
-import java.time.format.DateTimeFormatter; // For parsing and formatting dates
-import java.time.format.DateTimeParseException; // For handling invalid date formats
-import java.util.ArrayList;          // For storing a list of animals
-import java.util.List;               // Interface for a list of animals
+import java.io.BufferedReader; // For reading the file line by line.
+import java.io.FileReader;     // For opening and reading files.
+import java.io.IOException;    // For handling file-related exceptions.
+import java.util.ArrayList;    // Provides a resizable array implementation (used for storing animal objects).
+import java.util.Arrays;       // Utility class for working with arrays (used to convert array to a list).
+import java.util.HashSet;      // Implements a hash-based collection (used for fast lookup of valid habitats).
+import java.util.List;         // Interface for a list of animals.
+import java.util.Scanner;      // Used for reading user input from the console.
+import java.util.Set;          // Defines an unordered collection with unique elements (interface for HashSet).
 /**
  *
  * @author gustavobrito22icloud.com
  */
 public class ZooAnimalApp {
- private List<Animal> animals;  // List to store all the animals in the zoo
-
-    public ZooAnimalApp() {
-        animals = new ArrayList<>();
-    }
+    private final List<Animal> animals; // List to store all the animals in the zoo
  
+    // Array of valid habitats to compare users entries.
+    private static final String[] VALID_HABITATS = { // "final" key word 
+        "Rainforest",  "Savanna", "Desert", "Ocean", "Arctic", "Mountain",
+        "Grass", "Jungle", "Freshwater"
+    };
     
-     // Method to add an animal to the zoo
-    public void addAnimal(Animal animal) {
-        animals.add(animal); // Add the animal to the list
-        System.out.println(animal.getName() + " has been added to the zoo!"); // Notify the user
-    }
-    
-        // Method to display all animals in the zoo
-    public void displayAnimals() {
-        System.out.println("\nAnimals in the zoo:"); // Header message
-        for (Animal animal : animals) { // Loop through all animals
-            // Print the animal's details
-            System.out.println(animal.toString());
-            // Trigger the animal's behavior
-            animal.eat();
-            animal.makeSound();
-            animal.move();
-            System.out.println(); // Add a blank line for better readability
-        }
+    // Convert the array into a Set for fast lookup.
+    private static final Set<String> VALID_HABITATS_SET = new HashSet<>(Arrays.asList(VALID_HABITATS));
+
+    // Constructor to initialize the zoo (animals list).
+    public ZooAnimalApp() {
+        animals = new ArrayList<>(); // Creates an empty ArrayList to store animal objects.
+    }   
+
+    // Menu to display options and handle user input
+    public void displayMenu() {
+        Scanner scanner = new Scanner(System.in); // New Scanner object to read file.
+        int choice = 0; // int variable created to store users choice.
+        
+        do { // do loop make sure to run at least once and display menu while user does not select "3 - Quit". 
+            // Print the menu options
+            System.out.println("\n=== Zoo Animal App ===");
+            System.out.println("1 - Data Input (Read file and add animals)");
+            System.out.println("2 - Find and Display Animals");
+            System.out.println("3 - Quit");
+            System.out.print("Enter your choice using number: ");
+            
+            // Validate input to ensure it's an integer.
+            if (!scanner.hasNextInt()) {
+            System.out.println("Invalid input! Please enter a number between 1 and 3.");
+            scanner.next(); // Consume the invalid input
+            continue; // Restart the loop.
+            }
+            
+            // Read user input.
+            choice = scanner.nextInt();
+            scanner.nextLine(); // Consume the newline character.
+            
+            // Validade input is between 1 and 3.
+            if( choice < 1 || choice > 3) {
+                System.out.println("Invalid choice! Please enter a number between 1 and 3.");
+                continue; // Restart the loop.
+            }
+
+            // Handle menu choices.
+            switch (choice) {  // Takes the users choice as parameter for the case.
+                case 1:
+                    System.out.print("Enter the filename path to read data from: ");
+                    String filename = scanner.nextLine(); // Stores filepath in variable filename.
+                    loadAnimalsFromFile(filename); // Call method to read file. 
+                    break;
+
+                case 2:
+                    findAndDisplayAnimals(scanner); // Calls method to display animals.
+                    break;
+
+                case 3:
+                    System.out.println("Exiting the program. Goodbye!"); // Exit program. 
+                    break;
+
+                default:
+                    System.out.println("Invalid choice! Please try again."); // Deafult message for ivalid choice. 
+            }
+        } while (choice != 3); // Repeat until the user selects "Quit". 
     }
 
-    // Method to read animals from the file
+    // Method to read and validade animals data from a file.
     public void loadAnimalsFromFile(String filename) {
         try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
-            String line;
-            while ((line = br.readLine()) != null) { // Read lines until EOF
-                // Parse Type, Species, Name from the first line
-                String[] basicInfo = line.split(",");
-                if (basicInfo.length != 3) { // Check for valid format
-                    System.err.println("Invalid format for basic info: " + line);
-                    skipInvalidAnimal(br, 3); // Skip invalid entries
-                    continue;
+            String line; //Stores current read line.
+            while ((line = br.readLine()) != null) { // while line is not empty, keep reading.
+                
+                // Spliting first line: Type, Species, Name
+                String[] firstLine = line.split(","); // Method to split line by comma and store elements in array. 
+                // Check is first line contains three elements, Type, Species and Name.
+                if (firstLine.length != 3) { 
+                    System.out.println("Invalid format for Type, Species, Name: " + line + ". It must be three elements separeted by \",\"(comma).");
+                    skipInvalidAnimal(br, 3); // Skip the remaining lines for the the invalid animal 
+                    continue; // Skip this animal  
                 }
 
-                String type = basicInfo[0];    // Type of the animal (e.g., Mammal)
-                String species = basicInfo[1]; // Species of the animal (e.g., Lion)
-                String name = basicInfo[2];    // Name of the animal (e.g., Simba)
-
-                // Read Habitat from the next line
-                String habitat = br.readLine();
-
-                // Read Date of Birth and Weight from the next line
-                line = br.readLine();
-                String[] dobWeight = line.split(",");
-                if (dobWeight.length != 2) { // Check for valid format
-                    System.err.println("Invalid format for DoB and weight: " + line);
-                    skipInvalidAnimal(br, 2); // Skip invalid entries
-                    continue;
+                String type = firstLine[0]; // Stores Type 
+                String species = firstLine[1]; // Stores Species
+                String name = firstLine[2]; // Stores Name 
+                
+                
+                // Validate type (must contain only letters and spaces)
+                if (!type.matches("^[A-Za-z ]+$")) { 
+                System.out.println("Invalid animal type: " + type + ". Animal Type must be only letters."); // Error message
+                skipInvalidAnimal(br, 3);// Skip the remaining lines for the the invalid animal
+                continue; 
                 }
-
-                String dob = dobWeight[0];         // Date of birth (yyyy/MM/dd)
-                String weightString = dobWeight[1]; // Weight as a string
-
-                // Read Characteristics from the next line
-                String characteristics = br.readLine();
-
-                // Validate the data before creating the animal object
-                if (!isValidData(type, species, name, habitat, dob, weightString, characteristics)) {
-                    skipInvalidAnimal(br, 1); // Skip invalid entries
-                    continue;
-                }
-
-                // Convert weight to a double
-                double weight = Double.parseDouble(weightString);
-
-                // Create an animal object based on the type
-                Animal animal = createAnimal(type, species, name, habitat, dob, weight, characteristics);
-
-                // Add the animal to the zoo if it was successfully created
-                if (animal != null) {
-                    addAnimal(animal);
-                }
-            }
-        } catch (IOException e) { // Handle file reading errors
-            System.err.println("Error reading file: " + e.getMessage());
-        }
-    }
-
-    // Helper method to skip invalid animal data
-    private void skipInvalidAnimal(BufferedReader br, int linesToSkip) throws IOException {
-        // Skip the specified number of lines to ignore invalid data
-        for (int i = 0; i < linesToSkip; i++) {
-            br.readLine();
-        }
-    }
-
-    // Method to validate the animal data
-    private boolean isValidData(String type, String species, String name, String habitat, String dob, String weightString, String characteristics) {
-        // Validate species (must contain only letters and spaces)
-        if (!species.matches("^[A-Za-z ]+$")) {
-            System.err.println("Invalid species: " + species);
-            return false;
-        }
-
-        // Validate name (can contain letters, numbers, and spaces)
-        if (!name.matches("^[A-Za-z0-9 ]+$")) {
-            System.err.println("Invalid name: " + name);
-            return false;
-        }
-
-        // Validate habitat (must not be empty)
-        if (habitat == null || habitat.trim().isEmpty()) {
-            System.err.println("Invalid habitat: " + habitat);
-            return false;
-        }
-
-        // Validate Date of Birth (must match yyyy/MM/dd format)
-        if (!dob.matches("^\\d{4}/\\d{2}/\\d{2}$")) {
-            System.err.println("Invalid Date of Birth format: " + dob);
-            return false;
-        }
-        try {
-            // Ensure the date can be parsed
-            LocalDate.parse(dob, DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-        } catch (DateTimeParseException e) {
-            System.err.println("Invalid Date of Birth: " + dob);
-            return false;
-        }
-
-        // Validate weight (must be a positive double)
-        try {
-            double weight = Double.parseDouble(weightString);
-            if (weight <= 0) {
-                System.err.println("Invalid weight: " + weightString);
-                return false;
-            }
-        } catch (NumberFormatException e) {
-            System.err.println("Invalid weight format: " + weightString);
-            return false;
-        }
-
-        // Validate characteristics (must not be empty)
-        if (characteristics == null || characteristics.isEmpty()) {
-            System.err.println("Invalid characteristics: " + characteristics);
-            return false;
-        }
-
-        return true; // All validations passed
-    }
-
-    // Factory method to create an animal object based on its type
-    private Animal createAnimal(String type, String species, String name, String habitat, String dob, double weight, String characteristics) {
-        switch (type.toLowerCase()) {
-            case "mammal":
-                return new Mammal(type, species, name, habitat, dob, weight, characteristics);
-            case "bird":
-                return new Bird(type, species, name, habitat, dob, weight, characteristics);
-            case "reptile":
-                return new Reptile(type, species, name, habitat, dob, weight, characteristics);
-            case "fish":
-                return new Fish(type, species, name, habitat, dob, weight, characteristics);
-            default:
-                System.err.println("Unknown animal type: " + type); // Handle unknown types
-                return null;
-        }
-    }
-    
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String[] args) {
-        // TODO code application logic here
         
-                ZooAnimalApp zoo = new ZooAnimalApp(); // Create an instance of ZooAnimalApp
+                // Validate species (must contain only letters and spaces)
+                if (!species.matches("^[A-Za-z ]+$")) {
+                System.out.println("Invalid species: " + species + ". Species must be only letters."); // Error message
+                skipInvalidAnimal(br, 3);
+                continue;
+                }
+        
+                // Validate name (can contain letters, numbers, and spaces)
+                if (!name.matches("^[A-Za-z0-9 ]+$")) {
+                System.out.println("Invalid name: " + name + ". Name must be only letters and numbers."); // Error message
+                skipInvalidAnimal(br, 3);
+                continue; 
+                }
+                
 
-        // Specify the input file containing animal data
-        String filename = "/Users/gustavobrito22icloud.com/Desktop/animals.txt";
+                // Read second line - Habitat.
+                String habitat = br.readLine(); 
+                // Checking if habitat is not null or empty, if it is a string and if it maches with valid habitat list.
+                if(habitat == null || habitat.trim().isEmpty() || !habitat.matches("^[A-Za-z ]+$") || !VALID_HABITATS_SET.contains(habitat)){ 
+                    System.out.println("Invalid habitat: " + habitat +". It must not be empty, be letters and matchs valid habitat list: Rainforest, Savanna, Desert, Ocean, Arctic, Mountain, Wetlands, Grass, Jungle, Freshwater");
+                    skipInvalidAnimal(br, 2); // Skip the remaining lines of the invalid animal
+                    continue;
+                }
+                 
+                // Read third line - Date of Birth and Weight from next line. 
+                line = br.readLine(); //Read line and stores it in "variable line".
+                String[] thirdLine = line.split(","); // Method to split line by comma and store elements in array. 
+                
+                if (thirdLine.length != 2) { // Check for valid format, two elements
+                System.out.println("Invalid format for DoB and weight: " + line + ". It must be: yyyy/mm/dd, 00.0"); // Errro message.
+                skipInvalidAnimal(br, 1); // Skip the remaining lines of the invalid animal.
+                continue; // Skip this animal.
+                }
 
-        // Load animals from the file
-        zoo.loadAnimalsFromFile(filename);
+                String dob = thirdLine[0]; // Stores Date of birth.
+                String weightString = thirdLine[1]; // Stores weight as string.
+                
+                // Validate Date of Birth (must match yyyy/MM/dd format).
+                if (!dob.matches("^\\d{4}/\\d{2}/\\d{2}$")) { // Check format yyyy/MM/dd.
+                 System.out.println("Invalid Date of Birth: " + dob + "Date of Birth must match yyyy/MM/dd format"); // Error message. 
+                continue;
+                }
+                
+                // Parse and validate weight, must be positive number.              
+                double weight = Double.parseDouble(weightString); // Convert weight to double
+                if (weight <= 0) { // check weight is less or equal to zero
+                System.out.println("Invalid weight: " + weightString + ". Must be a positive number."); // Error message.
+                skipInvalidAnimal(br, 1); // Skip the remaining lines of the invalid animal 
+                continue; 
+                }     
 
-        // Display all animals in the zoo
-        zoo.displayAnimals();
-    }  
+                // Read fourth line - Characteristics.
+                String characteristics = br.readLine();
+                if (characteristics == null || characteristics.trim().isEmpty()|| !characteristics.matches("^[A-Za-z0-9, ]+$")) {
+                System.out.println("Invalid characteristics: " + characteristics + "; for: " + name + ". It must be not empty and contains only letters, numbers, spaces, and commas.");
+                // Skip no lines as this is the last expected line for the current animal.
+                continue; // Skip this animal.
+                }
+
+                // Create animal object and add to the zoo list.
+                Animal animal = createAnimal(type, species, name, habitat, dob, weight, characteristics); // Create object. 
+                if (animal != null) { 
+                    addAnimal(animal); // Adding object to the list.
+                }
+            }
+        } catch (IOException e) { // catch exception. 
+            System.out.println("Error reading file: " + e.getMessage()); // Error message for user.
+        }
+    }
+
+    // Method to add an animal to the zoo.
+    public void addAnimal(Animal animal) {
+        animals.add(animal);  // Adds object to the list of animals.
+        System.out.println(animal.getName() + " has been added to the zoo!"); // Prints confirmation message.
+    }
+
+    // Helper method to skip invalid animal data.
+    private static void skipInvalidAnimal(BufferedReader br, int linesToSkip) throws IOException {
+        for (int i = 0; i < linesToSkip; i++) { // Loop to skip the given number of lines.
+            br.readLine(); // Reads and discards the current line.
+        }
+    }
+
+    // Factory method to create an animal object based on aninal type (mammal, bird, reptile, fish).
+    private Animal createAnimal(String type, String species, String name, String habitat, String dob, double weight, String characteristics) {
+        switch (type.toLowerCase()) { // Convert type to lowercase for comparison.
+            case "mammal":
+                return new Mammal(type, species, name, habitat, dob, weight, characteristics); // Create and return Mammal object.
+            case "bird":
+                return new Bird(type, species, name, habitat, dob, weight, characteristics); // Create and return Bird object
+            case "reptile":
+                return new Reptile(type, species, name, habitat, dob, weight, characteristics); // Create and return Reptile object.
+            case "fish":
+                return new Fish(type, species, name, habitat, dob, weight, characteristics); // Create and return Fish object.
+            default:
+                System.out.println("Unknown animal type: " + type); // Print error message if type is unrecognized.
+                return null; // Return null for invalid types.
+        }
+    }
+
+    // Method to find and display animals by criteria.
+    public void findAndDisplayAnimals(Scanner scanner) {
+     while (true) {
+        // Print Menu choices. 
+        System.out.println("\nFind Animals By:");
+        System.out.println("1 - Type");
+        System.out.println("2 - Habitat");
+        System.out.println("3 - Name");
+        System.out.println("4 - Species");
+        System.out.print("Enter your choice using number: ");
+        
+        // Handle incorrect input to prevent input mismatch.
+        if (!scanner.hasNextInt()) {
+        System.out.println("Invalid input! Please enter a number between 1 and 4.");
+        scanner.next(); // Consume the invalid input.
+        continue; // Exit the method to prevent further errors.
+        }
+        
+        int choice = scanner.nextInt(); // Variable to store users choice from input.
+        
+        scanner.nextLine(); // Consume newline.
+        
+        // Validate choice.
+        if (choice < 1 || choice > 4) {
+        System.out.println("Invalid choice! Please enter a number between 1 and 4.");
+        continue;
+        }
+        
+        System.out.print("Enter the search term. (eg. \"mammal\" for type, \"grass\" for habitat, \"dog\" for species or name):"); // Print message to enter. 
+        String searchTerm = scanner.nextLine();
+
+        // Filter animals based on criteria and collect animals into a new list to display them or print message for animal not found.
+        List<Animal> foundAnimals = animals.stream()
+                .filter(animal -> { // Filter animals based on search criteria.
+                    switch (choice) { // Takes the users choice as parameter for the case.
+                        case 1: return animal.getType().equalsIgnoreCase(searchTerm); // Search by type.
+                        case 2: return animal.getHabitat().equalsIgnoreCase(searchTerm); // Search by habitat.
+                        case 3: return animal.getName().equalsIgnoreCase(searchTerm); // Search by name.
+                        case 4: return animal.getSpecies().equalsIgnoreCase(searchTerm); // Search by species.
+                        default: return false; // If the choice is invalid, return false (no matches).                      
+                    }
+               }).toList(); // Put results into a list.
+        
+            if (foundAnimals.isEmpty()) {
+               System.out.println("No animals found matching your search."); // Message for animal not found.
+            } else {
+               foundAnimals.forEach(System.out::println);
+            }
+            
+        // Implementation to ask if user wants to search again or return to main menu.
+        System.out.print("Would you like to search for another animal? (yes/no): "); // Ask user for "yes" or "no".
+        String response = scanner.nextLine().trim().toLowerCase(); // Stores users input in lowercase for better check.
+        if (!response.equals("yes")) {
+            break; // Exit the loop and return to the main menu.
+        }
+      }
+    }
+
+    // Main method to run the program.
+    public static void main(String[] args) {
+        ZooAnimalApp app = new ZooAnimalApp(); // Create an instance of the ZooAnimalApp.
+        app.displayMenu(); // Start the application by displaying the main menu.
+    }
 }
